@@ -413,10 +413,11 @@ function parseAny(txt){const m=txt.match(/```\s*mandalart\s*\n([\s\S]*?)```/i);l
     else if(kind==="핵심")out.core=nm;else if(kind==="기간"){const [a,b]=nm.split("~");out.start=a;out.end=b}
     else if(kind==="세부"){const g=(out.goals[id[0]]??={actions:{}});g.name=nm;if(get(r,"이모지"))g.emoji=get(r,"이모지")}
     else if(kind==="실천"){const g=(out.goals[id[0]]??={actions:{}});const k=KMAP[get(r,"기준")]||"count";
+      if(r.length<h.length&&k!=="count"&&/^\d/.test(get(r,"주기"))&&!/^\d/.test(get(r,"목표")))r.splice(ix("주기"),0,"");
       let tgt=parseFloat(get(r,"목표"))||parseFloat(get(r,"횟수"))||1;const recS=get(r,"기록");
       const per=get(r,"주기");let kk=k;if(k==="count"&&/분기|격월|년|연/.test(per)){kk="total";tgt=Math.round(tgt*(/분기/.test(per)?4:/격월/.test(per)?6:1))}
-      if(kk!==k){g.actions[id]={name:nm,kind:kk,period:"week",target:tgt,unit:get(r,"단위")||"회",memo:get(r,"메모"),rec:recS===""?null:parseFloat(recS)};return}
-      g.actions[id]={name:nm,kind:k,period:PMAP[get(r,"주기")]||"week",target:k==="percent"?100:tgt,unit:get(r,"단위")||(k==="percent"?"%":"회"),memo:get(r,"메모"),rec:recS===""?null:parseFloat(recS)}}})}
+      if(kk!==k){g.actions[id]={name:nm,kind:kk,period:"week",target:tgt,unit:get(r,"단위")||"회",memo:get(r,"메모"),rec:isNaN(parseFloat(recS))?null:parseFloat(recS)};return}
+      g.actions[id]={name:nm,kind:k,period:PMAP[get(r,"주기")]||"week",target:k==="percent"?100:tgt,unit:get(r,"단위")||(k==="percent"?"%":"회"),memo:get(r,"메모"),rec:isNaN(parseFloat(recS))?null:parseFloat(recS)}}})}
   else{const L="ABCDEFGH",gid={};
     data.forEach(r=>{const kind=get(r,"구분");if(kind==="핵심")out.core=get(r,"이름");
       if(kind==="세부"){const p=parseInt(get(r,"위치"))||Object.keys(gid).length+1;gid[get(r,"세부목표")||get(r,"이름")]=L[p-1];(out.goals[L[p-1]]??={actions:{}}).name=get(r,"이름")}});
