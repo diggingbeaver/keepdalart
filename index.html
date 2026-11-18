@@ -353,7 +353,7 @@ $("menuBtn").onclick=()=>{
   $("m-img").onclick=imageUI;
   $("m-undo").onclick=()=>{const u=load(UNDO);if(!u){toast("되돌릴 게 없어요");return}store(UNDO,S);S=migrate(u);save();render();closeModal();toast("되돌렸어요")};
   $("m-new").onclick=()=>{store(UNDO,S);S=emptyState();save();render();closeModal();toast("새로 시작!")}};
-function emptyState(){return{sample:false,emoji:"🎯",identity:"",core:"",start:ymd(new Date()),end:new Date().getFullYear()+"-12-31",goals:[..."ABCDEFGH"].map(c=>({id:c+"0",name:"",emoji:"🎯",actions:[1,2,3,4,5,6,7,8].map(i=>blank(c+i))}))}}
+function emptyState(){const n=new Date(),y=n.getMonth()>=10?n.getFullYear()+1:n.getFullYear();return{sample:false,emoji:"🎯",identity:"",core:"",start:y>n.getFullYear()?y+"-01-01":ymd(n),end:y+"-12-31",goals:[..."ABCDEFGH"].map(c=>({id:c+"0",name:"",emoji:"🎯",actions:[1,2,3,4,5,6,7,8].map(i=>blank(c+i))}))}}
 $("bannerPaste").onclick=pasteUI;
 
 /* ---------- 홈 화면 추가 ---------- */
@@ -396,7 +396,7 @@ function pasteUI(){
   modal("AI 결과 붙여넣기",`<p class="note">AI 답변 전체를 그대로 붙여넣어도 돼요. 데이터 부분만 찾아서 읽어요.</p>
    <button class="btn" id="pt-clip">📋 복사한 내용 바로 붙여넣기</button>
    <div class="field"><label for="pt">AI 답변</label><textarea id="pt" placeholder="\`\`\`mandalart 로 시작하는 블록 또는 CSV"></textarea></div><div id="pv"></div><button class="btn" id="pt-go">미리 보기</button>`);
-  $("pt-clip").onclick=async()=>{try{const t=await navigator.clipboard.readText();if(!t.trim())throw 0;$("pt").value=t;$("pt-go").click()}catch(e){$("pt").focus();toast("아래 칸을 길게 눌러 '붙여넣기' 해주세요")}};
+  $("pt-clip").onclick=async()=>{try{const t=await Promise.race([navigator.clipboard.readText(),new Promise((_,no)=>setTimeout(()=>no(0),2500))]);if(!t.trim())throw 0;$("pt").value=t;$("pt-go").click()}catch(e){$("pt").focus();toast("아래 칸을 길게 눌러 '붙여넣기' 해주세요")}};
   $("pt-go").onclick=()=>{const r=parseAny($("pt").value);
     if(!r){$("pv").innerHTML=`<div class="diff warn">데이터를 못 찾았어요. \`\`\`mandalart 블록이나 '이름,구분,세부목표…'로 시작하는 표가 들어 있는지 확인해주세요.</div>`;return}
     const d=diff(S,r);$("pv").innerHTML=`<div class="diff">${d.html}</div>`;$("pt-go").textContent=`${d.n}곳 바꾸고 적용하기`;
@@ -413,7 +413,9 @@ function parseAny(txt){const m=txt.match(/```\s*mandalart\s*\n([\s\S]*?)```/i);l
     else if(kind==="핵심")out.core=nm;else if(kind==="기간"){const [a,b]=nm.split("~");out.start=a;out.end=b}
     else if(kind==="세부"){const g=(out.goals[id[0]]??={actions:{}});g.name=nm;if(get(r,"이모지"))g.emoji=get(r,"이모지")}
     else if(kind==="실천"){const g=(out.goals[id[0]]??={actions:{}});const k=KMAP[get(r,"기준")]||"count";
-      const tgt=parseFloat(get(r,"목표"))||parseFloat(get(r,"횟수"))||1;const recS=get(r,"기록");
+      let tgt=parseFloat(get(r,"목표"))||parseFloat(get(r,"횟수"))||1;const recS=get(r,"기록");
+      const per=get(r,"주기");let kk=k;if(k==="count"&&/분기|격월|년|연/.test(per)){kk="total";tgt=Math.round(tgt*(/분기/.test(per)?4:/격월/.test(per)?6:1))}
+      if(kk!==k){g.actions[id]={name:nm,kind:kk,period:"week",target:tgt,unit:get(r,"단위")||"회",memo:get(r,"메모"),rec:recS===""?null:parseFloat(recS)};return}
       g.actions[id]={name:nm,kind:k,period:PMAP[get(r,"주기")]||"week",target:k==="percent"?100:tgt,unit:get(r,"단위")||(k==="percent"?"%":"회"),memo:get(r,"메모"),rec:recS===""?null:parseFloat(recS)}}})}
   else{const L="ABCDEFGH",gid={};
     data.forEach(r=>{const kind=get(r,"구분");if(kind==="핵심")out.core=get(r,"이름");
